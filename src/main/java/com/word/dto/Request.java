@@ -16,9 +16,9 @@ public class Request {
     private String type;
 
     /**
-     * 参数类型
+     * 数据是否是对象,是就存对象名
      */
-    private String paramType;
+    private String  IBean;
 
     /**
      * 是否必填
@@ -62,11 +62,11 @@ public class Request {
         this.remark = remark;
     }
 
-    public String getParamType() {
-        return paramType;
+    public String getIBean() {
+        return IBean;
     }
 
-    public void setParamType(String paramType) {
-        this.paramType = paramType;
+    public void setIBean(String IBean) {
+        this.IBean = IBean;
     }
 }

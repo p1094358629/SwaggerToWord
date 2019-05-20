@@ -71,7 +71,7 @@ public class Temp {
                             Request request = new Request();
                             request.setName(parameter.getName());
                             request.setType(parameter.getPattern());
-                            request.setParamType(parameter.getIn());
+//                            request.setParamType(parameter.getIn());
                             request.setRequire(parameter.getRequired());
                             request.setRemark(parameter.getDescription());
                             requestList.add(request);

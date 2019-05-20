@@ -1,21 +1,25 @@
 package com.word.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.word.dto.Request;
-import com.word.dto.Response;
-import com.word.dto.Table;
+import com.word.dto.*;
 import com.word.service.WordService;
+import com.word.utils.StringCompareUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.List;
 
@@ -25,13 +29,19 @@ import java.util.List;
 @Service
 public class WordServiceImpl implements WordService {
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private static RestTemplate restTemplate;
     @Value("${swaggerUrl}")
     private String swaggerUrl;
 
+    static {
+        //解决中文乱码
+        StringHttpMessageConverter m = new StringHttpMessageConverter(Charset.forName("UTF-8"));
+        restTemplate = new RestTemplateBuilder().additionalMessageConverters(m).build();
+    }
+
     @Override
     public List<Table> tableList() {
+
         String json = restTemplate.getForObject(swaggerUrl, String.class);
 
         Map<String, Object> map = new HashMap<>();
@@ -42,7 +52,8 @@ public class WordServiceImpl implements WordService {
 
         try {
             // convert JSON string to Map
-            map = mapper.readValue(json, new TypeReference<HashMap<String,Object>>(){});
+            map = mapper.readValue(json, new TypeReference<HashMap<String, Object>>() {
+            });
         } catch (Exception e) {
             LoggerFactory.getLogger(WordService.class).error("parse error", e);
         }
@@ -52,12 +63,15 @@ public class WordServiceImpl implements WordService {
         String host = StringUtils.substringBefore(swaggerUrl, ":") + String.valueOf(map.get("host"));
         //解析paths
         LinkedHashMap<String, LinkedHashMap> paths = (LinkedHashMap) map.get("paths");
+        //解析definitions
+        LinkedHashMap<String, LinkedHashMap> definitions = (LinkedHashMap) map.get("definitions");
         if (paths != null) {
             Iterator<Map.Entry<String, LinkedHashMap>> it = paths.entrySet().iterator();
             while (it.hasNext()) {
                 Table table = new Table();
                 List<Request> requestList = new LinkedList<>();
                 List<Response> responseList = new LinkedList<>();
+                List<RequestBean> requestBeans = new LinkedList<>();
                 // 请求参数格式，类似于 multipart/form-data
                 String requestForm = "";
                 // 请求参数格式，类似于 multipart/form-data
@@ -84,6 +98,7 @@ public class WordServiceImpl implements WordService {
                 LinkedHashMap content = firstRequestType.getValue();
                 title = String.valueOf(((List) content.get("tags")).get(0));
                 description = String.valueOf(content.get("description"));
+                //请求数据类型
                 List<String> consumes = (List) content.get("consumes");
                 if (consumes != null && consumes.size() > 0) {
                     for (String consume : consumes) {
@@ -96,7 +111,7 @@ public class WordServiceImpl implements WordService {
                         responseForm += produce + ",";
                     }
                 }
-
+                //功能说明
                 tag = String.valueOf(content.get("summary"));
                 //请求体
                 List parameters = (ArrayList) content.get("parameters");
@@ -105,8 +120,10 @@ public class WordServiceImpl implements WordService {
                         Request request = new Request();
                         LinkedHashMap<String, Object> param = (LinkedHashMap) parameters.get(i);
                         request.setName(String.valueOf(param.get("name")));
-                        request.setType(param.get("type") == null ? "Object" : param.get("type").toString());
-                        request.setParamType(String.valueOf(param.get("in")));
+                        //如果IBean有值说明数据类型为对象
+                        request.setIBean(param.get("schema") == null ? null : getSchema(String.valueOf(param.get("schema"))));
+                        //数据类型,如果type为空则存为对象名
+                        request.setType(param.get("type") == null ? getSchema(String.valueOf(param.get("schema"))) : param.get("type").toString());
                         request.setRequire((Boolean) param.get("required"));
                         request.setRemark(String.valueOf(param.get("description")));
                         requestList.add(request);
@@ -127,29 +144,79 @@ public class WordServiceImpl implements WordService {
                     response.setRemark(null);
                     responseList.add(response);
                 }
+                //请求入参的对象
+                for (Request request : requestList) {
+                    String beanName = request.getIBean();
+                    if (beanName != null) {
+                        LinkedHashMap properties = (LinkedHashMap) definitions.get(beanName).get("properties");
+                        //是否必输
+                        List<String> requires = (List<String>) definitions.get(beanName).get("required");
+                        if (properties != null) {
+                            Iterator<Map.Entry<String, LinkedHashMap>> i = properties.entrySet().iterator();
+                            RequestBean requestBean = new RequestBean();
+                            List<BeanProp> beanProps = new ArrayList<>();
+                            while (i.hasNext()) {
+                                //填充每个字段
+                                Map.Entry<String, LinkedHashMap> next = i.next();
+                                BeanProp beanProp = new BeanProp();
+                                beanProp.setName((String) next.getValue().get("name"));
+                                beanProp.setDescription((String) next.getValue().get("description"));
+                                //如果type为null 则可能是对象
+                                beanProp.setType((String) next.getValue().get("type"));
+                                beanProp.setRequired( StringCompareUtil.isInContain(next.getKey(),requires));
+                                beanProps.add(beanProp);
+                            }
+                            //对象名
+                            requestBean.setName(beanName);
+                            //对象属性
+                            requestBean.setBeanProps(beanProps);
+                            requestBeans.add(requestBean);
+                        }
 
-                // 模拟一次HTTP请求,封装请求体和返回体
-                // 得到请求方式
-                String restType = firstRequestType.getKey();
-                Map<String, Object> paramMap = ParamMap(requestList);
-                String buildUrl = buildUrl(host + url, requestList);
+                    }
 
-                //封装Table
-                table.setTitle(title);
-                table.setUrl(url);
-                table.setTag(tag);
-                table.setDescription(description);
-                table.setRequestForm(StringUtils.removeEnd(requestForm, ","));
-                table.setResponseForm(StringUtils.removeEnd(responseForm, ","));
-                table.setRequestType(StringUtils.removeEnd(requestType, ","));
-                table.setRequestList(requestList);
-                table.setResponseList(responseList);
-                table.setRequestParam(String.valueOf(paramMap));
-                table.setResponseParam(doRestRequest(restType, buildUrl, paramMap));
-                list.add(table);
+
+                    // 模拟一次HTTP请求,封装请求体和返回体
+                    // 得到请求方式
+//                String restType = firstRequestType.getKey();
+//                Map<String, Object> paramMap = ParamMap(requestList);
+//                String buildUrl = buildUrl(host + url, requestList);
+
+                    //封装Table
+                    table.setTitle(title);
+                    table.setUrl(url);
+                    table.setTag(tag);
+                    table.setDescription(description);
+                    table.setRequestForm(StringUtils.removeEnd(requestForm, ","));
+                    table.setResponseForm(StringUtils.removeEnd(responseForm, ","));
+                    table.setRequestType(StringUtils.removeEnd(requestType, ","));
+                    table.setRequestList(requestList);
+                    table.setResponseList(responseList);
+//                table.setRequestParam(String.valueOf(paramMap));
+//                table.setResponseParam(doRestRequest(restType, buildUrl, paramMap));
+//                如果入参不是基本类型,则需要加入到此
+                    table.setRequestBeans(requestBeans);
+                    list.add(table);
+                }
             }
         }
         return list;
+    }
+
+    /**
+     * 从schema中获取对象
+     *
+     * @param schema
+     * @return
+     */
+    private String getSchema(String schema) {
+        /**
+         *
+         *             "$ref": "#/definitions/ListMyWebMessageReq"
+         *
+         */
+        String beanString = schema.substring(schema.lastIndexOf("/") + 1).replace("}", "");
+        return beanString;
     }
 
     /**

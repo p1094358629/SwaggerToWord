@@ -60,6 +60,20 @@ public class Table {
      */
     private String responseParam;
 
+    /**
+     * 入参对象列表
+     * @return
+     */
+    private List<RequestBean> requestBeans;
+
+    public List<RequestBean> getRequestBeans() {
+        return requestBeans;
+    }
+
+    public void setRequestBeans(List<RequestBean> requestBeans) {
+        this.requestBeans = requestBeans;
+    }
+
     public String getTitle() {
         return title;
     }
