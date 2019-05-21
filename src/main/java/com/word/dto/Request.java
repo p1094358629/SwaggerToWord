@@ -16,7 +16,7 @@ public class Request {
     private String type;
 
     /**
-     * 数据是否是对象,是就存对象名
+     * 参数是否是对象,是就存对象名
      */
     private String  IBean;
 

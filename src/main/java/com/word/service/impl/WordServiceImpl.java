@@ -102,9 +102,9 @@ public class WordServiceImpl implements WordService {
                         LinkedHashMap<String, Object> param = (LinkedHashMap) parameters.get(i);
                         request.setName(String.valueOf(param.get("name")));
                         //如果IBean有值说明数据类型为对象
-                        request.setIBean(param.get("schema") == null ? null : getSchema(String.valueOf(param.get("schema"))));
+                        request.setIBean(param.get("schema") == null ? null : getBeanFromInput(String.valueOf(param.get("schema"))));
                         //数据类型,如果type为空则存为对象名
-                        request.setType(param.get("type") == null ? getSchema(String.valueOf(param.get("schema"))) : param.get("type").toString());
+                        request.setType(param.get("type") == null ? getBeanFromInput(String.valueOf(param.get("schema"))) : param.get("type").toString());
                         request.setRequire((Boolean) param.get("required"));
                         request.setRemark(String.valueOf(param.get("description")));
                         requestList.add(request);
@@ -122,7 +122,7 @@ public class WordServiceImpl implements WordService {
                     String statusDescription = (String) statusCodeInfo.get("description");
                     response.setName(statusCode);
                     response.setDescription(statusDescription);
-                    response.setRemark(statusCodeInfo.get("schema") == null ? null : getSchema(String.valueOf(statusCodeInfo.get("schema"))));
+                    response.setRemark(statusCodeInfo.get("schema") == null ? null : getBeanFromInput(String.valueOf(statusCodeInfo.get("schema"))));
                     responseList.add(response);
                 }
                 //封装Table
@@ -164,8 +164,13 @@ public class WordServiceImpl implements WordService {
                         BeanProp beanProp = new BeanProp();
                         beanProp.setName(next.getKey());
                         beanProp.setDescription((String) next.getValue().get("description"));
-                        //如果type为null 则可能是对象
-                        beanProp.setType((String) next.getValue().get("type"));
+                        //如果type为null/array,则可能是对象
+                        String  type = (String) next.getValue().get("type");
+                        if (type==null){
+                            type = getBeanFromInput((String) next.getValue().get("$ref"));
+                        }
+                        beanProp.setType( type);
+                        beanProp.setIBean(next.getValue().get("$ref")==null?null:type);
                         beanProp.setRequired(StringCompareUtil.isInContain(next.getKey(), requires));
                         beanProps.add(beanProp);
                     }
@@ -201,7 +206,7 @@ public class WordServiceImpl implements WordService {
      * @param schema
      * @return
      */
-    private String getSchema(String schema) {
+    private String getBeanFromInput(String schema) {
         /**
          *
          *             "$ref": "#/definitions/ListMyWebMessageReq"

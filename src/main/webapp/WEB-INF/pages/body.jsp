@@ -46,7 +46,10 @@
                     </c:if>
                         <%--数据类型是true,则需要做超链接--%>
                     <c:if test="${not flag}">
-                        <td><a href="#_${req.type}">${req.type}</a></td>
+                        <td>
+                            <a href="#_${req.type}">${req.type}</a>
+                            <a id="_${req.type}Back" name="_${_req.type}Back}"></a>
+                        </td>
                     </c:if>
                     <td>
                         <c:choose>
@@ -67,7 +70,10 @@
                 <tr align="center">
                     <td>${res.name}</td>
                     <td>${res.description}</td>
-                    <td colspan="3"><a href="#_${res.remark}">${res.remark}</a></td>
+                    <td colspan="3">
+                        <a href="#_${res.remark}">${res.remark}</a>
+                        <a id="_${res.remark}Back" name="_${res.remark}Back"></a>
+                    </td>
                 </tr>
             </c:forEach>
         </table>
@@ -76,10 +82,17 @@
         <hr/>
     </c:forEach>
 
+
+    <h4>出入参对象</h4>
     <%--出入参对象集合--%>
     <c:forEach items="${definitions}" var="definition">
-        <%--<h4 style="display: inline-block">对象名:</h4>--%>
-        <h4  id="_${definition.name}"><a name="_${definition.name}">${definition.name}</a></h4>
+        <h5  id="_${definition.name}">
+            <a name="_${definition.name}">${definition.name}</a>
+            <%--只有出入参能返回--%>
+            <c:if test="${definition.name.indexOf('Req')!=-1 or definition.name.indexOf('Resp')!=-1}">
+                <a href="#_${definition.name}Back">返回</a>
+            </c:if>
+        </h5>
         <table border="1" cellspacing="0" cellpadding="0" width="100%">
             <tr class="bg" align="center">
                 <td>参数名</td>
@@ -91,7 +104,15 @@
                 <tr align="center">
                     <td>${b.name}</td>
                     <td>${b.description}</td>
-                    <td>${b.type}</td>
+
+                    <c:if test="${b.IBean ==null}" var="flag" scope="session">
+                        <td>${b.type}</td>
+                    </c:if>
+                        <%--数据类型是true,则需要做超链接--%>
+                    <c:if test="${not flag}">
+                        <td><a href="#_${b.type}">${b.type}</a></td>
+                    </c:if>
+
                     <td>
                         <c:choose>
                             <c:when test="${b.required == true}">Y</c:when>
