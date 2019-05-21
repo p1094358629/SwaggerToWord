@@ -1,18 +1,22 @@
 package com.word.controller;
 
+import com.word.dto.DefinitionsBean;
 import com.word.dto.Table;
 import com.word.service.WordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
 
 /**
- * Created by XiuYin.Cui on 2018/1/11.
- */
+ * @Author xuym26145
+ * @Description
+ * @Date 2019/5/21 14:22
+ * @Param 
+ * @return 
+ **/
 @Controller
 public class WordController {
 
@@ -21,15 +25,23 @@ public class WordController {
 
     @RequestMapping("/getWord")
     public String getJson(Model model){
-        List<Table> list = tableService.tableList();
-        model.addAttribute("table",list);
+        transform(model);
         return "word";
     }
     @RequestMapping("/getHtml")
     public String getHtml(Model model){
-        List<Table> list = tableService.tableList();
-        model.addAttribute("table",list);
-//        type 0 html ,1word
+        transform(model);
         return "html";
     }
+    private void transform(Model model) {
+        model.addAttribute("table", getTables());
+        model.addAttribute("definitions", definitionsBean());
+    }
+    private List<Table> getTables() {
+        return tableService.tableList();
+    }
+    private List<DefinitionsBean> definitionsBean(){
+        return tableService.definitionsBean();
+    }
+
 }

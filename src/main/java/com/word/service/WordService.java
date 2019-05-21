@@ -1,5 +1,6 @@
 package com.word.service;
 
+import com.word.dto.DefinitionsBean;
 import com.word.dto.Table;
 
 import java.util.List;
@@ -10,4 +11,7 @@ import java.util.List;
 public interface WordService {
 
     List<Table> tableList();
+
+    List<DefinitionsBean> definitionsBean();
+
 }

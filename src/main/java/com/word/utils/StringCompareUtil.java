@@ -47,15 +47,6 @@ public class StringCompareUtil {
     }
 
 
-    /**
-     * 判断Object对象为空或空字符串
-     * @param obj
-     * @return
-     */
-    public static Boolean isObjectNotEmpty(Object obj) {
-        String str = ObjectUtils.toString(obj, "");
-        return StringUtils.isNotBlank(str);
-    }
 
     /**
      * 判断在集合中是否存在特定的字符串

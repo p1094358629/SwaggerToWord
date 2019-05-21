@@ -67,34 +67,40 @@
                 <tr align="center">
                     <td>${res.name}</td>
                     <td>${res.description}</td>
-                    <td colspan="3">${res.remark}</td>
+                    <td colspan="3"><a href="#_${res.remark}">${res.remark}</a></td>
                 </tr>
-            </c:forEach>
-
-            <c:forEach items="${t.requestBeans}" var="reqBean">
-                <td id="_${reqBean.name}">${reqBean.name}</td>
-                <tr class="bg" align="center">
-                    <td>参数名</td>
-                    <td>描述</td>
-                    <td>参数类型</td>
-                    <td>是否必填</td>
-                </tr>
-                <c:forEach items="${reqBean.beanProps}" var="b">
-                    <tr align="center">
-                        <td>${b.name}</td>
-                        <td>${b.description}</td>
-                        <td>${b.type}</td>
-                        <td>
-                            <c:choose>
-                                <c:when test="${b.required == true}">Y</c:when>
-                                <c:otherwise>N</c:otherwise>
-                            </c:choose>
-                        </td>
-                    </tr>
-                </c:forEach>
             </c:forEach>
         </table>
-        <br>
+
+        <br/>
+        <hr/>
     </c:forEach>
+
+    <%--出入参对象集合--%>
+    <c:forEach items="${definitions}" var="definition">
+        <h5 id="_${definition.name}">对象名:${definition.name}</h5>
+        <table border="1" cellspacing="0" cellpadding="0" width="100%">
+            <tr class="bg" align="center">
+                <td>参数名</td>
+                <td>描述</td>
+                <td>参数类型</td>
+                <td>是否必填</td>
+            </tr>
+            <c:forEach items="${definition.beanProps}" var="b">
+                <tr align="center">
+                    <td>${b.name}</td>
+                    <td>${b.description}</td>
+                    <td>${b.type}</td>
+                    <td>
+                        <c:choose>
+                            <c:when test="${b.required == true}">Y</c:when>
+                            <c:otherwise>N</c:otherwise>
+                        </c:choose>
+                    </td>
+                </tr>
+            </c:forEach>
+        </table>
+    </c:forEach>
+
 </div>
 </body>
